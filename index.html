@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mundo Mágico dos Unicórnios 3D</title>
+  <style>
+    @import url('https://googleapis.com');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      cursor: none; /* Esconde o rato normal para usar o 3D */
+    }
+
+    body {
+      min-height: 100vh;
+      overflow-x: hidden;
+      font-family: 'Nunito', sans-serif;
+      color: #fff;
+      /* Fundo colorido animado */
+      background: linear-gradient(-45deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3, #5f27cd);
+      background-size: 400% 400%;
+      animation: gradientBG 10s ease infinite;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      perspective: 1000px;
+    }
+
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* Rato 3D */
+    #cursor-3d {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 34px;
+      height: 34px;
+      pointer-events: none;
+      z-index: 9999;
+      transform-style: preserve-3d;
+      transition: transform 0.08s ease-out;
+    }
+
+    .cursor-gem {
+      width: 100%;
+      height: 100%;
+      background: conic-gradient(from 0deg, #ff0080, #ff8c00, #40e0d0, #ff0080);
+      clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.9);
+      animation: spin3D 3s linear infinite;
+    }
+
+    @keyframes spin3D {
+      0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
+      100% { transform: rotateX(360deg) rotateY(360deg) rotateZ(180deg); }
+    }
+
+    /* Partículas do rasto do rato */
+    .sparkle {
+      position: fixed;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9998;
+      animation: fadeOut 0.8s forwards;
+    }
+
+    @keyframes fadeOut {
+      0% { transform: scale(1) translateY(0); opacity: 1; }
+      100% { transform: scale(0) translateY(20px); opacity: 0; }
+    }
+
+    /* Secção Intro */
+    .intro-container {
+      text-align: center;
+      padding: 40px 20px;
+      z-index: 10;
+      transform-style: preserve-3d;
+      animation: introPop 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    @keyframes introPop {
+      0% { opacity: 0; transform: scale(0.3) rotateX(-45deg); }
+      100% { opacity: 1; transform: scale(1) rotateX(0deg); }
+    }
+
+    h1 {
+      font-family: 'Fredoka One', cursive;
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      text-shadow: 0 6px 0 #5f27cd, 0 12px 25px rgba(0, 0, 0, 0.3);
+      margin-bottom: 15px;
+      letter-spacing: 2px;
+    }
+
+    p.subtitle {
+      font-size: 1.3rem;
+      font-weight: 800;
+      background: rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(8px);
+      padding: 10px 25px;
+      border-radius: 50px;
+      display: inline-block;
+      margin-bottom: 40px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Arco-íris Clicável */
+    .rainbow-wrapper {
+      position: relative;
+      width: 320px;
+      height: 170px;
+      margin: 0 auto;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      filter: drop-shadow(0 15px 25px rgba(0,0,0,0.25));
+    }
+
+    .rainbow-wrapper:hover {
+      transform: scale(1.12) translateY(-10px);
+    }
+
+    .rainbow-wrapper:active {
+      transform: scale(0.95);
+    }
+
+    .rainbow-svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    .click-badge {
+      position: absolute;
+      bottom: -15px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #fff;
+      color: #ff0080;
+      font-family: 'Fredoka One', cursive;
+      padding: 8px 20px;
+      border-radius: 30px;
+      font-size: 1.1rem;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+      animation: bounce 1.5s infinite;
+      white-space: nowrap;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(-8px); }
+    }
+
+    /* Galeria de Unicórnios */
+    #unicorn-gallery {
+      display: none;
+      max-width: 1100px;
+      width: 90%;
+      margin: 40px auto 60px;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 25px;
+      z-index: 10;
+    }
+
+    #unicorn-gallery.active {
+      display: grid;
+    }
+
+    .unicorn-card {
+      background: rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(12px);
+      border: 3px solid rgba(255, 255, 255, 0.7);
+      border-radius: 25px;
+      padding: 15px;
+      text-align: center;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+      opacity: 0;
+      transform: translateY(40px) scale(0.8);
+      animation: cardReveal 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+      transition: transform 0.3s ease;
+    }
+
+    .unicorn-card:hover {
+      transform: translateY(-10px) rotate(2deg) scale(1.03);
+    }
+
+    @keyframes cardReveal {
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .unicorn-card img {
+      width: 100%;
+      height: 240px;
+      object-fit: cover;
+      border-radius: 18px;
+      margin-bottom: 12px;
+      background: #ffeaa7;
+    }
+
+    .unicorn-card h3 {
+      font-family: 'Fredoka One', cursive;
+      font-size: 1.3rem;
+      text-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    /* Botão para gerar mais */
+    #more-btn {
+      display: none;
+      margin-bottom: 50px;
+      padding: 14px 32px;
+      font-family: 'Fredoka One', cursive;
+      font-size: 1.2rem;
+      color: #5f27cd;
+      background: #fff;
+      border: none;
+      border-radius: 50px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+      transition: transform 0.2s;
+      z-index: 10;
+    }
+
+    #more-btn:hover {
+      transform: scale(1.08);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Cursor 3D -->
+  <div id="cursor-3d">
+    <div class="cursor-gem"></div>
+  </div>
+
+  <!-- Introdução -->
+  <div class="intro-container" id="intro">
+    <h1>✨ Universo Unicórnio ✨</h1>
+    <p class="subtitle">Mexe o teu rato 3D e clica no arco-íris mágico!</p>
+
+    <div class="rainbow-wrapper" id="rainbow-btn" title="Clica em mim!">
+      <svg class="rainbow-svg" viewBox="0 0 300 160">
+        <!-- Arcos do Arco-Íris -->
+        <path d="M 20 150 A 130 130 0 0 1 280 150" fill="none" stroke="#ff3838" stroke-width="18" stroke-linecap="round"/>
+        <path d="M 38 150 A 112 112 0 0 1 262 150" fill="none" stroke="#ff9f1a" stroke-width="18" stroke-linecap="round"/>
+        <path d="M 56 150 A 94 94 0 0 1 244 150" fill="none" stroke="#fff200" stroke-width="18" stroke-linecap="round"/>
+        <path d="M 74 150 A 76 76 0 0 1 226 150" fill="none" stroke="#32ff7e" stroke-width="18" stroke-linecap="round"/>
+        <path d="M 92 150 A 58 58 0 0 1 208 150" fill="none" stroke="#18dcff" stroke-width="18" stroke-linecap="round"/>
+        <path d="M 110 150 A 40 40 0 0 1 190 150" fill="none" stroke="#7d5fff" stroke-width="18" stroke-linecap="round"/>
+        <!-- Nuvens fofas nas pontas -->
+        <circle cx="25" cy="148" r="22" fill="#ffffff"/>
+        <circle cx="48" cy="150" r="18" fill="#ffffff"/>
+        <circle cx="10" cy="152" r="16" fill="#ffffff"/>
+        <circle cx="275" cy="148" r="22" fill="#ffffff"/>
+        <circle cx="252" cy="150" r="18" fill="#ffffff"/>
+        <circle cx="290" cy="152" r="16" fill="#ffffff"/>
+      </svg>
+      <div class="click-badge">🌈 Clica no Arco-Íris!</div>
+    </div>
+  </div>
+
+  <!-- Galeria de Fotos -->
+  <div id="unicorn-gallery"></div>
+  <button id="more-btn">🦄 Mostrar Mais Unicórnios!</button>
+
+  <script>
+    const cursor = document.getElementById('cursor-3d');
+    const intro = document.getElementById('intro');
+    const rainbowBtn = document.getElementById('rainbow-btn');
+    const gallery = document.getElementById('unicorn-gallery');
+    const moreBtn = document.getElementById('more-btn');
+
+    const colors = ['#ff0080', '#ff8c00', '#ffe600', '#00ff88', '#00d4ff', '#ffffff'];
+
+    // Movimento do Rato 3D e Inclinação da Intro
+    document.addEventListener('mousemove', (e) => {
+      const x = e.clientX;
+      const y = e.clientY;
+
+      // Calcula inclinação 3D com base na posição do rato
+      const rotateY = ((x / window.innerWidth) - 0.5) * 45;
+      const rotateX = ((y / window.innerHeight) - 0.5) * -45;
+
+      cursor.style.transform = `translate3d(${x - 17}px, ${y - 17}px, 50px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+
+      // Efeito 3D suave no título da intro
+      intro.style.transform = `rotateY(${rotateY * 0.25}deg) rotateX(${rotateX * 0.25}deg)`;
+
+      // Cria partículas brilhantes
+      createSparkle(x, y);
+    });
+
+    function createSparkle(x, y) {
+      const sparkle = document.createElement('div');
+      sparkle.className = 'sparkle';
+      sparkle.style.left = `${x + (Math.random() * 16 - 8)}px`;
+      sparkle.style.top = `${y + (Math.random() * 16 - 8)}px`;
+      sparkle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+      sparkle.style.boxShadow = `0 0 10px ${sparkle.style.backgroundColor}`;
+      document.body.appendChild(sparkle);
+
+      setTimeout(() => {
+        sparkle.remove();
+      }, 800);
+    }
+
+    // Lista de fotos/ilustrações fofas de unicórnios
+    const unicorns = [
+      {
+        name: "Unicórnio Estelar 🌟",
+        url: "https://unsplash.com"
+      },
+      {
+        name: "Algodão Doce 🍭",
+        url: "https://unsplash.com"
+      },
+      {
+        name: "Brilho de Arco-Íris 🌈",
+        url: "https://unsplash.com"
+      },
+      {
